@@ -122,11 +122,6 @@ CREATE TABLE source_records (
 );
 
 
-CREATE TABLE tax_event_types (
-  code TEXT PRIMARY KEY,
-  description TEXT
-);
-
 CREATE INDEX idx_source_records_tax_identity
     ON source_records(tax_identity_id);
 
@@ -140,6 +135,11 @@ CREATE UNIQUE INDEX uq_source_records_identity_checksum
     ON source_records(tax_identity_id, checksum)
     WHERE checksum IS NOT NULL;
 
+
+CREATE TABLE tax_event_types (
+  code TEXT PRIMARY KEY,
+  description TEXT
+);
 
 CREATE TABLE tax_events (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
