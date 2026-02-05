@@ -1,5 +1,7 @@
 const express = require('express');
 const cors = require('cors');
+const swaggerUi = require('swagger-ui-express');
+const swaggerSpecs = require('./swagger');
 require('dotenv').config();
 
 // Import routes
@@ -34,6 +36,21 @@ app.get('/health', (req, res) => {
         timestamp: new Date().toISOString(),
     });
 });
+
+// Swagger API Documentation
+app.get('/api-docs.json', (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.send(swaggerSpecs);
+});
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs, {
+    explorer: true,
+    customSiteTitle: 'Tax Declaration API',
+    customCss: '.swagger-ui .topbar { display: none }',
+    swaggerOptions: {
+        persistAuthorization: true,
+        displayRequestDuration: true,
+    }
+}));
 
 // API Routes
 app.use('/api/auth', authRoutes);

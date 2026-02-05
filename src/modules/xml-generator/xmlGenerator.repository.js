@@ -2,7 +2,7 @@ const db = require('../../db/postgres');
 
 const xmlGeneratorRepository = {
     // ==========================================
-    // XML FIELD MAPPINGS
+    // XML FIELD MAPPINGS (from xml_field_map table)
     // ==========================================
 
     /**
@@ -15,19 +15,12 @@ const xmlGeneratorRepository = {
             `SELECT 
                 xfm.id,
                 xfm.form_code,
-                xfm.xml_field_name,
-                xfm.xml_field_path,
-                xfm.data_type,
-                xfm.default_value,
-                xfm.is_required,
-                xfm.description,
-                lf.id AS logical_field_id,
-                lf.code AS logical_field_code,
-                lf.name AS logical_field_name
-            FROM xml_field_mappings xfm
-            LEFT JOIN logical_fields lf ON lf.id = xfm.logical_field_id
+                xfm.application_code,
+                xfm.logical_field,
+                xfm.xml_field_name
+            FROM xml_field_map xfm
             WHERE xfm.form_code = $1
-            ORDER BY xfm.xml_field_path`,
+            ORDER BY xfm.application_code, xfm.xml_field_name`,
             [formCode]
         );
         return result.rows;
@@ -41,12 +34,8 @@ const xmlGeneratorRepository = {
      */
     async getXmlFieldByLogicalCode(logicalFieldCode, formCode = '270.00') {
         const result = await db.query(
-            `SELECT 
-                xfm.*,
-                lf.code AS logical_field_code
-            FROM xml_field_mappings xfm
-            JOIN logical_fields lf ON lf.id = xfm.logical_field_id
-            WHERE lf.code = $1 AND xfm.form_code = $2`,
+            `SELECT * FROM xml_field_map
+            WHERE logical_field = $1 AND form_code = $2`,
             [logicalFieldCode, formCode]
         );
         return result.rows[0] || null;
@@ -61,13 +50,10 @@ const xmlGeneratorRepository = {
         const mappings = await this.getXmlFieldMappings(formCode);
         const obj = {};
         for (const m of mappings) {
-            if (m.logical_field_code) {
-                obj[m.logical_field_code] = {
+            if (m.logical_field) {
+                obj[m.logical_field] = {
                     xmlFieldName: m.xml_field_name,
-                    xmlFieldPath: m.xml_field_path,
-                    dataType: m.data_type,
-                    defaultValue: m.default_value,
-                    isRequired: m.is_required,
+                    applicationCode: m.application_code,
                 };
             }
         }

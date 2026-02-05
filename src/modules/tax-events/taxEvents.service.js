@@ -277,6 +277,54 @@ const taxEventsService = {
 
         return await taxEventsRepository.createEventType(code, description);
     },
+
+    /**
+     * Create single tax event manually
+     * @param {string} userId - User creating the event
+     * @param {Object} eventData - Event data
+     * @returns {Promise<Object>}
+     */
+    async createEvent(userId, eventData) {
+        const { taxIdentityId, eventType, eventDate, amount, currency, metadata } = eventData;
+
+        // Validate required fields
+        if (!taxIdentityId) throw new Error('taxIdentityId is required');
+        if (!eventType) throw new Error('eventType is required');
+        if (!eventDate) throw new Error('eventDate is required');
+
+        // Check access
+        const hasAccess = await identitiesRepository.userHasAccess(userId, taxIdentityId);
+        if (!hasAccess) {
+            throw new Error('No access to this tax identity');
+        }
+
+        // Validate event type exists
+        const typeExists = await taxEventsRepository.eventTypeExists(eventType);
+        if (!typeExists) {
+            throw new Error(`Unknown event type: ${eventType}`);
+        }
+
+        // Create source record for manual entry
+        const sourceRecord = await sourcesRepository.create({
+            taxIdentityId,
+            sourceType: 'manual',
+            rawPayload: { ...eventData, createdBy: userId },
+            importedBy: userId,
+        });
+
+        // Insert the event
+        const event = await taxEventsRepository.insert({
+            taxIdentityId,
+            sourceRecordId: sourceRecord.id,
+            eventType,
+            eventDate,
+            amount: amount || 0,
+            currency: currency || 'KZT',
+            metadata: metadata || {},
+        });
+
+        return event;
+    },
 };
 
 module.exports = taxEventsService;

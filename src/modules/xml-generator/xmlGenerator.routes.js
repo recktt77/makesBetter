@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const xmlGeneratorController = require('./xmlGenerator.controller');
-const authMiddleware = require('../../middleware/auth.middleware');
+const { authenticate } = require('../../middleware/auth.middleware');
 
 // All routes require authentication
-router.use(authMiddleware);
+router.use(authenticate);
 
 // ==========================================
 // GENERATION
