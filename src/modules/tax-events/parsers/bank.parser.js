@@ -147,29 +147,44 @@ const BankParser = {
 
         // Rent income
         if (description.includes('аренд') || description.includes('rent')) {
-            return 'INCOME_RENT';
+            return 'EV_PROPERTY_RENT_NON_AGENT';
         }
 
         // Foreign income indicators
         if (description.includes('иностран') || description.includes('foreign') ||
             description.includes('swift') || description.includes('international')) {
-            return 'INCOME_FOREIGN_GENERAL';
+            return 'EV_FOREIGN_OTHER';
+        }
+
+        // Dividends
+        if (description.includes('дивиденд') || description.includes('dividend')) {
+            return 'EV_FOREIGN_DIVIDENDS';
+        }
+
+        // Interest
+        if (description.includes('процент') || description.includes('interest') ||
+            description.includes('вознагражд')) {
+            return 'EV_FOREIGN_INTEREST';
         }
 
         // Property related
         if (description.includes('имущество') || description.includes('property') ||
             description.includes('недвижим')) {
-            return 'INCOME_PROPERTY_KZ';
+            return 'EV_PROPERTY_SALE_KZ';
         }
 
-        // Default: classify as income for credits
+        // Salary/employment from foreign source
+        if ((description.includes('зарплат') || description.includes('salary')) &&
+            (description.includes('иностран') || description.includes('foreign'))) {
+            return 'EV_FOREIGN_EMPLOYMENT_INCOME';
+        }
+
+        // Default: classify as other non-agent income for credits
         if (amount > 0) {
-            return 'INCOME_OTHER';
+            return 'EV_OTHER_NON_AGENT_INCOME';
         }
 
-        // We don't create events for expenses by default
-        // But if needed, could be handled here
-        return 'INCOME_OTHER';
+        return 'EV_OTHER_NON_AGENT_INCOME';
     },
 
     /**

@@ -231,28 +231,39 @@ const OneCParser = {
         // Income types
         if (docType.includes('пко') || docType.includes('приходный') || docType.includes('income')) {
             if (description.includes('аренд') || description.includes('rent')) {
-                return 'INCOME_RENT';
+                return 'EV_PROPERTY_RENT_NON_AGENT';
             }
             if (description.includes('имущество') || description.includes('property')) {
-                return 'INCOME_PROPERTY_KZ';
+                return 'EV_PROPERTY_SALE_KZ';
             }
-            return 'INCOME_OTHER';
+            if (description.includes('дивиденд') || description.includes('dividend')) {
+                return 'EV_FOREIGN_DIVIDENDS';
+            }
+            return 'EV_OTHER_NON_AGENT_INCOME';
         }
 
         // Sales
         if (docType.includes('реализация') || docType.includes('sale') || docType.includes('продажа')) {
             if (description.includes('имущество') || description.includes('недвижим')) {
-                return 'INCOME_PROPERTY_KZ';
+                return 'EV_PROPERTY_SALE_KZ';
             }
-            return 'INCOME_OTHER';
+            if (description.includes('иностран') || description.includes('foreign')) {
+                return 'EV_PROPERTY_SALE_FOREIGN';
+            }
+            return 'EV_OTHER_NON_AGENT_INCOME';
         }
 
-        // Services
+        // Services (IP income)
         if (docType.includes('услуг') || docType.includes('service')) {
-            return 'PRIVATE_PRACTICE_INCOME';
+            return 'EV_IP_OTHER_ASSET_SALE';
         }
 
-        return 'INCOME_OTHER';
+        // GPC contracts
+        if (docType.includes('гпх') || docType.includes('гпд') || docType.includes('подряд')) {
+            return 'EV_CITIZEN_GPC_INCOME';
+        }
+
+        return 'EV_OTHER_NON_AGENT_INCOME';
     },
 
     /**
