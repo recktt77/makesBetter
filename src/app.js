@@ -9,6 +9,8 @@ const identitiesRoutes = require('./modules/identities/identities.routes');
 const sourcesRoutes = require('./modules/sources/sources.routes');
 const taxEventsRoutes = require('./modules/tax-events/taxEvents.routes');
 const ruleEngineRoutes = require('./modules/rule-engine/ruleEngine.routes');
+const declarationsRoutes = require('./modules/declarations/declarations.routes');
+const xmlRoutes = require('./modules/xml-generator/xmlGenerator.routes');
 
 // Import middleware
 const { errorHandler, notFoundHandler } = require('./middleware/error.middleware');
@@ -40,6 +42,8 @@ app.use('/api/identities', identitiesRoutes);
 app.use('/api/sources', sourcesRoutes);
 app.use('/api/tax-events', taxEventsRoutes);
 app.use('/api/rules', ruleEngineRoutes);
+app.use('/api/declarations', declarationsRoutes);
+app.use('/api/xml', xmlRoutes);
 
 // 404 handler
 app.use(notFoundHandler);

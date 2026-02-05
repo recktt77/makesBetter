@@ -314,3 +314,94 @@ INSERT INTO tax_rules (rule_code, tax_year, rule_type, conditions, actions, prio
  '{"event_type": {"=": "EV_FOREIGN_TAX_PAID_CFC"}}',
  '[{"type": "map", "logical_field": "LF_FOREIGN_TAX_CREDIT_CFC", "amount_source": "event.amount"}]',
  100, true);
+
+-- =========================================================
+-- XML Field Mapping for Form 270.00
+-- Maps logical_fields to XML field names
+-- =========================================================
+DELETE FROM xml_field_map WHERE form_code = '270.00';
+
+-- 270.00 Main form fields (page_270_00_01)
+INSERT INTO xml_field_map (form_code, application_code, logical_field, xml_field_name) VALUES
+('270.00', '270.00', NULL, 'iin'),
+('270.00', '270.00', NULL, 'period_year'),
+('270.00', '270.00', NULL, 'fio1'),
+('270.00', '270.00', NULL, 'fio2'),
+('270.00', '270.00', NULL, 'fio3'),
+('270.00', '270.00', NULL, 'payer_phone_number'),
+('270.00', '270.00', NULL, 'email'),
+('270.00', '270.00', NULL, 'iin_spouse'),
+('270.00', '270.00', NULL, 'iin_legalrepresentative'),
+('270.00', '270.00', NULL, 'dt_main'),
+('270.00', '270.00', NULL, 'dt_regular'),
+('270.00', '270.00', NULL, 'dt_additional'),
+('270.00', '270.00', NULL, 'dt_notice'),
+('270.00', '270.00', NULL, 'pril_1'),
+('270.00', '270.00', NULL, 'pril_2'),
+('270.00', '270.00', NULL, 'pril_3'),
+('270.00', '270.00', NULL, 'pril_4'),
+('270.00', '270.00', NULL, 'pril_5'),
+('270.00', '270.00', NULL, 'pril_6'),
+('270.00', '270.00', NULL, 'pril_7');
+
+-- 270.01 Section A - Property Income (Имущественный доход)
+INSERT INTO xml_field_map (form_code, application_code, logical_field, xml_field_name) VALUES
+('270.00', '270.01', 'LF_INCOME_PROPERTY_KZ', 'field_270_01_A1_1'),
+('270.00', '270.01', 'LF_INCOME_PROPERTY_FOREIGN', 'field_270_01_A1_2'),
+('270.00', '270.01', 'LF_INCOME_PROPERTY_CAPITAL_CONTRIBUTION', 'field_270_01_A2'),
+('270.00', '270.01', 'LF_INCOME_RENT_NON_AGENT', 'field_270_01_A3'),
+('270.00', '270.01', 'LF_INCOME_ASSIGNMENT_RIGHTS', 'field_270_01_A4'),
+('270.00', '270.01', 'LF_INCOME_IP_OTHER_ASSETS', 'field_270_01_A5'),
+('270.00', '270.01', 'LF_INCOME_PROPERTY_TOTAL', 'field_270_01_A');
+
+-- 270.01 Section B - Foreign Income (Иностранные доходы)
+INSERT INTO xml_field_map (form_code, application_code, logical_field, xml_field_name) VALUES
+('270.00', '270.01', 'LF_INCOME_FOREIGN_EMPLOYMENT', 'field_270_01_B1_1'),
+('270.00', '270.01', 'LF_INCOME_FOREIGN_GPC', 'field_270_01_B1_2'),
+('270.00', '270.01', 'LF_INCOME_FOREIGN_WIN', 'field_270_01_B1_3'),
+('270.00', '270.01', 'LF_INCOME_FOREIGN_DIVIDENDS', 'field_270_01_B1_4'),
+('270.00', '270.01', 'LF_INCOME_FOREIGN_INTEREST', 'field_270_01_B1_5'),
+('270.00', '270.01', 'LF_INCOME_FOREIGN_SCHOLARSHIP', 'field_270_01_B1_6'),
+('270.00', '270.01', 'LF_INCOME_FOREIGN_INSURANCE', 'field_270_01_B1_7'),
+('270.00', '270.01', 'LF_INCOME_FOREIGN_PENSION', 'field_270_01_B1_8'),
+('270.00', '270.01', 'LF_INCOME_FOREIGN_OTHER', 'field_270_01_B1_9'),
+('270.00', '270.01', 'LF_INCOME_FOREIGN_TOTAL', 'field_270_01_B1');
+
+-- 270.01 Section B2-B7 - Non-agent domestic income
+INSERT INTO xml_field_map (form_code, application_code, logical_field, xml_field_name) VALUES
+('270.00', '270.01', 'LF_INCOME_DOMESTIC_HELPERS', 'field_270_01_B2'),
+('270.00', '270.01', 'LF_INCOME_CITIZENS_GPC', 'field_270_01_B3'),
+('270.00', '270.01', 'LF_INCOME_MEDIATOR', 'field_270_01_B4'),
+('270.00', '270.01', 'LF_INCOME_SUBSIDIARY_FARM', 'field_270_01_B5'),
+('270.00', '270.01', 'LF_INCOME_LABOR_MIGRANT', 'field_270_01_B6'),
+('270.00', '270.01', 'LF_INCOME_OTHER_NON_AGENT', 'field_270_01_B7');
+
+-- 270.01 Section C - CFC (КИК)
+INSERT INTO xml_field_map (form_code, application_code, logical_field, xml_field_name) VALUES
+('270.00', '270.01', 'LF_INCOME_CFC_PROFIT', 'field_270_01_C');
+
+-- 270.01 Section D - Total Income
+INSERT INTO xml_field_map (form_code, application_code, logical_field, xml_field_name) VALUES
+('270.00', '270.01', 'LF_INCOME_TOTAL', 'field_270_01_D');
+
+-- 270.01 Section E - Adjustments (Корректировки)
+INSERT INTO xml_field_map (form_code, application_code, logical_field, xml_field_name) VALUES
+('270.00', '270.01', 'LF_ADJUSTMENT_EXCLUDED_ART_341', 'field_270_01_E1'),
+('270.00', '270.01', 'LF_ADJUSTMENT_EXCLUDED_ART_654', 'field_270_01_E2'),
+('270.00', '270.01', 'LF_ADJUSTMENT_EXCLUDED_TREATY', 'field_270_01_E3'),
+('270.00', '270.01', 'LF_ADJUSTMENT_EXCLUDED_AIFC', 'field_270_01_E4'),
+('270.00', '270.01', 'LF_ADJUSTMENT_TOTAL', 'field_270_01_E');
+
+-- 270.01 Section F - Deductions (Вычеты)
+INSERT INTO xml_field_map (form_code, application_code, logical_field, xml_field_name) VALUES
+('270.00', '270.01', 'LF_DEDUCTION_STANDARD', 'field_270_01_F1'),
+('270.00', '270.01', 'LF_DEDUCTION_OTHER', 'field_270_01_F2'),
+('270.00', '270.01', 'LF_DEDUCTION_TOTAL', 'field_270_01_F');
+
+-- 270.01 Section G-K - Tax calculation
+INSERT INTO xml_field_map (form_code, application_code, logical_field, xml_field_name) VALUES
+('270.00', '270.01', 'LF_TAXABLE_INCOME', 'field_270_01_G'),
+('270.00', '270.01', 'LF_IPN_CALCULATED', 'field_270_01_H'),
+('270.00', '270.01', 'LF_FOREIGN_TAX_CREDIT_GENERAL', 'field_270_01_I'),
+('270.00', '270.01', 'LF_FOREIGN_TAX_CREDIT_CFC', 'field_270_01_J'),
+('270.00', '270.01', 'LF_IPN_PAYABLE', 'field_270_01_K');
