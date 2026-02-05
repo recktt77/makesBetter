@@ -5,53 +5,44 @@ const identitiesRepository = require('../identities/identities.repository');
 
 /**
  * XML Generator Service
- * Generates XML in 270.00 format from declaration data
+ * Generates XML in 270.00 format according to Kazakhstan tax authority specifications
+ * 
+ * Structure:
+ * <fno code="270.00" formatVersion="1" version="2">
+ *   <form name="form_270_00">
+ *     <sheetGroup>
+ *       <sheet name="page_270_00_01">
+ *         <field name="iin">...</field>
+ *       </sheet>
+ *     </sheetGroup>
+ *   </form>
+ * </fno>
  */
 const xmlGeneratorService = {
     // ==========================================
     // MAIN XML GENERATION
     // ==========================================
 
-    /**
-     * Generate XML for declaration
-     * @param {string} declarationId
-     * @param {string} userId
-     * @returns {Promise<Object>}
-     */
     async generate(declarationId, userId) {
-        // Get declaration
         const declaration = await declarationsRepository.findById(declarationId);
         if (!declaration) {
             throw new Error('Declaration not found');
         }
 
-        // Check access
         const hasAccess = await identitiesRepository.userHasAccess(userId, declaration.tax_identity_id);
         if (!hasAccess) {
             throw new Error('No access to this declaration');
         }
 
-        // Check status - must be at least validated
         if (declaration.status === 'draft') {
             throw new Error('Declaration must be validated before generating XML');
         }
 
-        // Get declaration items
         const items = await declarationsRepository.getItemsAsObject(declarationId);
-
-        // Get XML field mappings
-        const mappings = await xmlGeneratorRepository.getMappingsAsObject(declaration.form_code);
-
-        // Build XML content
-        const xmlContent = this.buildXml(declaration, items, mappings);
-
-        // Calculate hash
+        const xmlContent = this.buildXml(declaration, items);
         const xmlHash = crypto.createHash('sha256').update(xmlContent).digest('hex');
-
-        // Get next version
         const version = await xmlGeneratorRepository.getNextVersion(declarationId);
 
-        // Save to database
         const savedXml = await xmlGeneratorRepository.saveGeneratedXml({
             declarationId,
             xmlContent,
@@ -62,222 +53,299 @@ const xmlGeneratorService = {
 
         return {
             id: savedXml.id,
-            version: parseInt(savedXml.schema_version, 10) || version,
+            version,
             xmlHash,
             xmlContent,
             createdAt: savedXml.created_at,
         };
     },
 
-    /**
-     * Build XML string from declaration data
-     * @param {Object} declaration
-     * @param {Object} items - field values by logical_field code
-     * @param {Object} mappings - XML mappings
-     * @returns {string}
-     */
-    buildXml(declaration, items, mappings) {
+    buildXml(declaration, items) {
         const taxYear = declaration.tax_year;
-        const formCode = declaration.form_code;
+        const flags = declaration.flags || {};
+        const now = new Date();
+        const dateStr = this.formatDate(now);
 
-        // Header info
-        const iin = declaration.iin || '';
-        const fio = [declaration.fio_last, declaration.fio_first, declaration.fio_middle]
-            .filter(Boolean).join(' ');
-
-        // Build XML
         let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
-        xml += `<FORM_${formCode.replace('.', '_')} version="1.0">\n`;
+        xml += `<fno xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:fn="http://www.w3.org/2005/xpath-functions" xmlns:ds="http://www.w3.org/2000/09/xmldsig#" code="270.00" formatVersion="1" version="2">\n`;
 
-        // Header section
-        xml += `  <HEADER>\n`;
-        xml += `    <TAX_YEAR>${taxYear}</TAX_YEAR>\n`;
-        xml += `    <FORM_CODE>${formCode}</FORM_CODE>\n`;
-        xml += `    <DECLARATION_KIND>${this.getDeclarationKindCode(declaration.declaration_kind)}</DECLARATION_KIND>\n`;
-        xml += `    <IIN>${this.escapeXml(iin)}</IIN>\n`;
-        xml += `    <FIO>${this.escapeXml(fio)}</FIO>\n`;
-        xml += `    <PHONE>${this.escapeXml(declaration.payer_phone || '')}</PHONE>\n`;
-        xml += `    <EMAIL>${this.escapeXml(declaration.email || '')}</EMAIL>\n`;
-        xml += `    <GENERATED_AT>${new Date().toISOString()}</GENERATED_AT>\n`;
-        xml += `  </HEADER>\n`;
+        xml += this.buildForm270_00(declaration, taxYear, dateStr, flags);
+        xml += this.buildForm270_01(declaration, items, taxYear);
+        xml += this.buildForm270_02(declaration, taxYear);
+        xml += this.buildForm270_03(declaration, taxYear);
+        xml += this.buildForm270_04(declaration, taxYear);
+        xml += this.buildForm270_05(declaration, taxYear);
+        xml += this.buildForm270_06(declaration, taxYear);
+        xml += this.buildForm270_07(declaration, taxYear);
 
-        // Income section (270.01)
-        xml += `  <SECTION_270_01>\n`;
-        xml += this.buildIncomeSection(items, mappings);
-        xml += `  </SECTION_270_01>\n`;
+        xml += `</fno>\n`;
+        return xml;
+    },
 
-        // Adjustments section (270.02)
-        xml += `  <SECTION_270_02>\n`;
-        xml += this.buildAdjustmentsSection(items, mappings);
-        xml += `  </SECTION_270_02>\n`;
+    buildForm270_00(declaration, taxYear, dateStr, flags) {
+        let xml = `<form name="form_270_00">\n<sheetGroup>\n<sheet name="page_270_00_01">\n`;
 
-        // Deductions section (270.03)
-        xml += `  <SECTION_270_03>\n`;
-        xml += this.buildDeductionsSection(items, mappings);
-        xml += `  </SECTION_270_03>\n`;
+        xml += this.field('accept_date', dateStr);
+        xml += this.field('agreement', 'false');
+        xml += this.field('dt_additional', declaration.declaration_kind === 'additional' ? 'true' : 'false');
+        xml += this.field('dt_main', declaration.declaration_kind === 'main' ? 'true' : 'false');
+        xml += this.field('dt_notice', declaration.declaration_kind === 'notice' ? 'true' : 'false');
+        xml += this.field('dt_regular', declaration.declaration_kind === 'regular' ? 'true' : 'false');
+        xml += this.field('dt_w', 'false');
+        xml += this.field('email', declaration.email || '');
+        xml += this.field('fio1', declaration.fio_last || '');
+        xml += this.field('fio2', declaration.fio_first || '');
+        xml += this.field('fio3', declaration.fio_middle || '');
+        
+        const headName = [declaration.fio_last, declaration.fio_first, declaration.fio_middle].filter(Boolean).join(' ');
+        xml += this.field('head_name', headName);
+        
+        xml += this.field('iin', declaration.iin || '');
+        xml += this.field('iin_legalrepresentative', declaration.iin_legalrepresentative || '');
+        xml += this.field('iin_spouse', declaration.iin_spouse || '');
+        xml += this.field('in_doc_number', '');
+        xml += this.field('payer_phone_number', declaration.payer_phone || '');
+        xml += this.field('period_year', taxYear);
+        xml += this.field('post_date', '');
+        xml += this.field('pril_1', flags.pril_1 ? 'true' : 'false');
+        xml += this.field('pril_2', flags.pril_2 ? 'true' : 'false');
+        xml += this.field('pril_3', flags.pril_3 ? 'true' : 'false');
+        xml += this.field('pril_4', flags.pril_4 ? 'true' : 'false');
+        xml += this.field('pril_5', flags.pril_5 ? 'true' : 'false');
+        xml += this.field('pril_6', flags.pril_6 ? 'true' : 'false');
+        xml += this.field('pril_7', flags.pril_7 ? 'true' : 'false');
+        xml += this.field('rating_auth_code', '');
+        xml += this.field('receptor_name', '');
+        xml += this.field('submit_date', dateStr);
 
-        // Tax calculation section (270.04)
-        xml += `  <SECTION_270_04>\n`;
-        xml += this.buildTaxSection(items, mappings);
-        xml += `  </SECTION_270_04>\n`;
+        xml += `</sheet>\n<sheet name="page_270_00_02"/>\n</sheetGroup>\n</form>\n`;
+        return xml;
+    },
 
-        // Foreign tax credit section (270.05)
-        xml += `  <SECTION_270_05>\n`;
-        xml += this.buildForeignTaxSection(items, mappings);
-        xml += `  </SECTION_270_05>\n`;
+    buildForm270_01(declaration, items, taxYear) {
+        let xml = `<form name="form_270_01">\n<sheetGroup>\n<sheet name="page_270_01_01">\n`;
 
-        // Flags section
-        if (declaration.flags && Object.keys(declaration.flags).length > 0) {
-            xml += `  <FLAGS>\n`;
-            for (const [key, value] of Object.entries(declaration.flags)) {
-                if (value) {
-                    xml += `    <FLAG name="${this.escapeXml(key)}">1</FLAG>\n`;
-                }
+        // Section A - Property Income
+        xml += this.field('field_270_01_A', this.formatMoney(items.LF_INCOME_PROPERTY_TOTAL));
+        xml += this.field('field_270_01_A1_1', this.formatMoney(items.LF_INCOME_PROPERTY_KZ));
+        xml += this.field('field_270_01_A1_2', this.formatMoney(items.LF_INCOME_PROPERTY_FOREIGN));
+        xml += this.field('field_270_01_A2', this.formatMoney(items.LF_INCOME_PROPERTY_CAPITAL_CONTRIBUTION));
+        xml += this.field('field_270_01_A3', this.formatMoney(items.LF_INCOME_RENT_NON_AGENT));
+        xml += this.field('field_270_01_A4', this.formatMoney(items.LF_INCOME_ASSIGNMENT_RIGHTS));
+        xml += this.field('field_270_01_A5', this.formatMoney(items.LF_INCOME_IP_OTHER_ASSETS));
+
+        // Section B1 - Foreign Income
+        xml += this.field('field_270_01_B1', this.formatMoney(items.LF_INCOME_FOREIGN_TOTAL));
+        xml += this.field('field_270_01_B1_1', this.formatMoney(items.LF_INCOME_FOREIGN_EMPLOYMENT));
+        xml += this.field('field_270_01_B1_2', this.formatMoney(items.LF_INCOME_FOREIGN_GPC));
+        xml += this.field('field_270_01_B1_3', this.formatMoney(items.LF_INCOME_FOREIGN_WIN));
+        xml += this.field('field_270_01_B1_4', this.formatMoney(items.LF_INCOME_FOREIGN_DIVIDENDS));
+        xml += this.field('field_270_01_B1_5', this.formatMoney(items.LF_INCOME_FOREIGN_INTEREST));
+        xml += this.field('field_270_01_B1_6', this.formatMoney(items.LF_INCOME_FOREIGN_SCHOLARSHIP));
+        xml += this.field('field_270_01_B1_7', this.formatMoney(items.LF_INCOME_FOREIGN_INSURANCE));
+        xml += this.field('field_270_01_B1_8', this.formatMoney(items.LF_INCOME_FOREIGN_PENSION));
+        xml += this.field('field_270_01_B1_9', this.formatMoney(items.LF_INCOME_FOREIGN_OTHER));
+
+        // Section B2-B7 - Non-agent domestic income
+        xml += this.field('field_270_01_B2', this.formatMoney(items.LF_INCOME_DOMESTIC_HELPERS));
+        xml += this.field('field_270_01_B3', this.formatMoney(items.LF_INCOME_CITIZENS_GPC));
+        xml += this.field('field_270_01_B4', this.formatMoney(items.LF_INCOME_MEDIATOR));
+        xml += this.field('field_270_01_B5', this.formatMoney(items.LF_INCOME_SUBSIDIARY_FARM));
+        xml += this.field('field_270_01_B6', this.formatMoney(items.LF_INCOME_LABOR_MIGRANT));
+        xml += this.field('field_270_01_B7', this.formatMoney(items.LF_INCOME_OTHER_NON_AGENT));
+
+        // Section C - CFC
+        xml += this.field('field_270_01_C', this.formatMoney(items.LF_INCOME_CFC_PROFIT));
+
+        // Section D - Total Income
+        xml += this.field('field_270_01_D', this.formatMoney(items.LF_INCOME_TOTAL));
+
+        // Section E - Adjustments
+        xml += this.field('field_270_01_E', this.formatMoney(items.LF_ADJUSTMENT_TOTAL));
+        xml += this.field('field_270_01_E1', this.formatMoney(items.LF_ADJUSTMENT_EXCLUDED_ART_341));
+        xml += this.field('field_270_01_E2', this.formatMoney(items.LF_ADJUSTMENT_EXCLUDED_ART_654));
+        xml += this.field('field_270_01_E3', this.formatMoney(items.LF_ADJUSTMENT_EXCLUDED_TREATY));
+        xml += this.field('field_270_01_E4', this.formatMoney(items.LF_ADJUSTMENT_EXCLUDED_AIFC));
+
+        // Section F - Deductions
+        xml += this.field('field_270_01_F', this.formatMoney(items.LF_DEDUCTION_TOTAL));
+        xml += this.field('field_270_01_F1', this.formatMoney(items.LF_DEDUCTION_STANDARD));
+        xml += this.field('field_270_01_F2', this.formatMoney(items.LF_DEDUCTION_OTHER));
+
+        // Section G-K - Tax Calculation
+        xml += this.field('field_270_01_G', this.formatMoney(items.LF_TAXABLE_INCOME));
+        xml += this.field('field_270_01_H', this.formatMoney(items.LF_IPN_CALCULATED));
+        xml += this.field('field_270_01_I', this.formatMoney(items.LF_FOREIGN_TAX_CREDIT_GENERAL));
+        xml += this.field('field_270_01_J', this.formatMoney(items.LF_FOREIGN_TAX_CREDIT_CFC));
+        xml += this.field('field_270_01_K', this.formatMoney(items.LF_IPN_PAYABLE));
+
+        xml += this.field('field_270_01_bin', '');
+        xml += this.field('iin', declaration.iin || '');
+        xml += this.field('page_number', '1');
+        xml += this.field('period_year', taxYear);
+
+        xml += `</sheet>\n</sheetGroup>\n</form>\n`;
+        return xml;
+    },
+
+    buildForm270_02(declaration, taxYear) {
+        let xml = `<form name="form_270_02">\n<sheetGroup>\n<sheet name="page_270_02_01">\n`;
+        xml += this.field('bank_code', '');
+        xml += this.field('field_270_02_kbk_01', '');
+        xml += this.field('field_270_02_kbk_02', '');
+        xml += this.field('field_270_02_kogd_01', '');
+        xml += this.field('field_270_02_kogd_02', '');
+        xml += this.field('iin', declaration.iin || '');
+        xml += this.field('page_number', '1');
+        xml += this.field('period_year', taxYear);
+        xml += `</sheet>\n</sheetGroup>\n</form>\n`;
+        return xml;
+    },
+
+    buildForm270_03(declaration, taxYear) {
+        let xml = `<form name="form_270_03">\n<sheetGroup>\n<sheet name="page_270_03_01">\n`;
+        xml += this.field('field_270_03_bin', '');
+        xml += this.field('field_270_03_tax_org', '');
+        xml += this.field('iin', declaration.iin || '');
+        xml += this.field('page_number', '1');
+        xml += this.field('period_year', taxYear);
+        xml += `</sheet>\n</sheetGroup>\n</form>\n`;
+        return xml;
+    },
+
+    buildForm270_04(declaration, taxYear) {
+        let xml = `<form name="form_270_04">\n<sheetGroup>\n<sheet name="page_270_04_01">\n`;
+
+        const sectionsB = ['A', 'B', 'C', 'E', 'F', 'G', 'H', 'I'];
+        for (const section of sectionsB) {
+            for (let i = 1; i <= 6; i++) {
+                xml += this.field(`field_270_04_B_${section}_${i}`, '');
             }
-            xml += `  </FLAGS>\n`;
         }
 
-        xml += `</FORM_${formCode.replace('.', '_')}>\n`;
+        const sectionsC = ['A', 'B', 'C', 'D', 'E'];
+        for (const section of sectionsC) {
+            for (let i = 1; i <= 6; i++) {
+                xml += this.field(`field_270_04_C_${section}_${i}`, '');
+            }
+        }
 
+        const sectionsD = ['A', 'B', 'C', 'D', 'F', 'G'];
+        for (const section of sectionsD) {
+            for (let i = 1; i <= 5; i++) {
+                xml += this.field(`field_270_04_D_${section}_${i}`, '');
+            }
+        }
+
+        const sectionsE = ['A', 'B', 'C', 'D', 'E'];
+        for (const section of sectionsE) {
+            for (let i = 1; i <= 5; i++) {
+                xml += this.field(`field_270_04_E_${section}_${i}`, '');
+            }
+        }
+
+        xml += this.field('iin', declaration.iin || '');
+        xml += this.field('page_number', '1');
+        xml += this.field('period_year', taxYear);
+        xml += `</sheet>\n</sheetGroup>\n</form>\n`;
         return xml;
     },
 
-    /**
-     * Build income section fields
-     */
-    buildIncomeSection(items, mappings) {
-        const incomeFields = [
-            'LF_INCOME_PROPERTY_SALE_KZ',
-            'LF_INCOME_PROPERTY_SALE_FOREIGN',
-            'LF_INCOME_SECURITIES_SALE',
-            'LF_INCOME_SHARE_SALE',
-            'LF_INCOME_DIVIDENDS_KZ',
-            'LF_INCOME_DIVIDENDS_FOREIGN',
-            'LF_INCOME_INTEREST_KZ',
-            'LF_INCOME_INTEREST_FOREIGN',
-            'LF_INCOME_ROYALTY',
-            'LF_INCOME_PRIZE',
-            'LF_INCOME_RENT',
-            'LF_INCOME_GIFT',
-            'LF_INCOME_INSURANCE',
-            'LF_INCOME_PENSION_FOREIGN',
-            'LF_INCOME_CFC',
-            'LF_INCOME_OTHER',
-            'LF_INCOME_TOTAL',
-        ];
+    buildForm270_05(declaration, taxYear) {
+        let xml = `<form name="form_270_05">\n<sheetGroup>\n<sheet name="page_270_05_01">\n`;
 
-        return this.buildFieldsXml(incomeFields, items, mappings);
-    },
-
-    /**
-     * Build adjustments section fields
-     */
-    buildAdjustmentsSection(items, mappings) {
-        const adjustmentFields = [
-            'LF_ADJUSTMENT_PROPERTY_SALE',
-            'LF_ADJUSTMENT_TOTAL',
-        ];
-
-        return this.buildFieldsXml(adjustmentFields, items, mappings);
-    },
-
-    /**
-     * Build deductions section fields
-     */
-    buildDeductionsSection(items, mappings) {
-        const deductionFields = [
-            'LF_DEDUCTION_PENSION_CONTRIBUTION',
-            'LF_DEDUCTION_MEDICAL',
-            'LF_DEDUCTION_EDUCATION',
-            'LF_DEDUCTION_MORTGAGE_INTEREST',
-            'LF_DEDUCTION_TOTAL',
-        ];
-
-        return this.buildFieldsXml(deductionFields, items, mappings);
-    },
-
-    /**
-     * Build tax calculation section fields
-     */
-    buildTaxSection(items, mappings) {
-        const taxFields = [
-            'LF_TAXABLE_INCOME',
-            'LF_IPN_RATE',
-            'LF_IPN_CALCULATED',
-            'LF_IPN_WITHHELD',
-            'LF_IPN_PAYABLE',
-            'LF_IPN_OVERPAID',
-        ];
-
-        return this.buildFieldsXml(taxFields, items, mappings);
-    },
-
-    /**
-     * Build foreign tax credit section fields
-     */
-    buildForeignTaxSection(items, mappings) {
-        const foreignFields = [
-            'LF_FOREIGN_TAX_PAID',
-            'LF_FOREIGN_TAX_CREDIT_GENERAL',
-            'LF_FOREIGN_TAX_CREDIT_CFC',
-        ];
-
-        return this.buildFieldsXml(foreignFields, items, mappings);
-    },
-
-    /**
-     * Build XML for a list of fields
-     */
-    buildFieldsXml(fieldCodes, items, mappings) {
-        let xml = '';
-
-        for (const code of fieldCodes) {
-            const value = items[code];
-            const mapping = mappings[code];
-
-            // Get XML field name from mapping or derive from code
-            const xmlFieldName = mapping?.xmlFieldName || code.replace('LF_', 'field_270_01_');
-
-            // Format value based on data type
-            const formattedValue = this.formatValue(value, mapping?.dataType);
-
-            xml += `    <${xmlFieldName}>${formattedValue}</${xmlFieldName}>\n`;
+        const sectionsB = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'I', 'J', 'K', 'L'];
+        for (const section of sectionsB) {
+            for (let i = 1; i <= 11; i++) {
+                xml += this.field(`field_270_05_B_${section}_${i}`, '');
+            }
         }
 
+        const sectionsC = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+        for (const section of sectionsC) {
+            for (let i = 1; i <= 11; i++) {
+                xml += this.field(`field_270_05_C_${section}_${i}`, '');
+            }
+        }
+
+        xml += this.field('iin', declaration.iin || '');
+        xml += this.field('page_number', '1');
+        xml += this.field('period_year', taxYear);
+        xml += `</sheet>\n</sheetGroup>\n</form>\n`;
         return xml;
     },
 
-    /**
-     * Format value for XML output
-     */
-    formatValue(value, dataType) {
-        if (value === null || value === undefined) {
-            return '0';
+    buildForm270_06(declaration, taxYear) {
+        let xml = `<form name="form_270_06">\n<sheetGroup>\n<sheet name="page_270_06_01">\n`;
+        xml += this.field('iin', declaration.iin || '');
+        xml += this.field('page_number', '1');
+        xml += this.field('period_year', taxYear);
+
+        for (let i = 0; i < 4; i++) {
+            xml += `<row>\n`;
+            xml += this.field('field_270_06_A', '');
+            xml += this.field('field_270_06_B', '');
+            xml += this.field('field_270_06_C', '');
+            xml += this.field('field_270_06_D', '');
+            xml += this.field('field_270_06_F', '');
+            xml += this.field('field_270_06_G', '');
+            xml += `</row>\n`;
         }
 
-        switch (dataType) {
-            case 'decimal':
-            case 'money':
-                return parseFloat(value).toFixed(2);
-            case 'integer':
-                return Math.round(value).toString();
-            case 'percent':
-                return (parseFloat(value) * 100).toFixed(2);
-            case 'boolean':
-                return value ? '1' : '0';
-            case 'date':
-                return value instanceof Date ? value.toISOString().split('T')[0] : value;
-            default:
-                return this.escapeXml(String(value));
-        }
+        xml += `</sheet>\n</sheetGroup>\n</form>\n`;
+        return xml;
     },
 
-    /**
-     * Escape XML special characters
-     */
+    buildForm270_07(declaration, taxYear) {
+        let xml = `<form name="form_270_07">\n<sheetGroup>\n<sheet name="page_270_07_01">\n`;
+        xml += this.field('iin', declaration.iin || '');
+        xml += this.field('page_number', '1');
+        xml += this.field('period_year', taxYear);
+
+        for (let i = 0; i < 4; i++) {
+            xml += `<row>\n`;
+            xml += this.field('field_270_07_A', '');
+            xml += this.field('field_270_07_B', '');
+            xml += this.field('field_270_07_C', '');
+            xml += this.field('field_270_07_D', '');
+            xml += this.field('field_270_07_F', '');
+            xml += this.field('field_270_07_M', '');
+            xml += `</row>\n`;
+        }
+
+        xml += `</sheet>\n</sheetGroup>\n</form>\n`;
+        return xml;
+    },
+
+    // ==========================================
+    // HELPER METHODS
+    // ==========================================
+
+    field(name, value) {
+        const escapedValue = this.escapeXml(value);
+        if (escapedValue === '' || escapedValue === null || escapedValue === undefined) {
+            return `<field name="${name}"/>\n`;
+        }
+        return `<field name="${name}">${escapedValue}</field>\n`;
+    },
+
+    formatMoney(value) {
+        if (value === null || value === undefined) return '';
+        const num = parseFloat(value);
+        if (isNaN(num) || num === 0) return '';
+        return Math.round(num).toString();
+    },
+
+    formatDate(date) {
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        return `${day}.${month}.${year}`;
+    },
+
     escapeXml(str) {
-        if (!str) return '';
-        return str
+        if (str === null || str === undefined) return '';
+        return String(str)
             .replace(/&/g, '&amp;')
             .replace(/</g, '&lt;')
             .replace(/>/g, '&gt;')
@@ -285,126 +353,70 @@ const xmlGeneratorService = {
             .replace(/'/g, '&apos;');
     },
 
-    /**
-     * Get declaration kind code for XML
-     */
-    getDeclarationKindCode(kind) {
-        const codes = {
-            'main': '1',
-            'additional': '2',
-            'corrective': '3',
-            'liquidation': '4',
-        };
-        return codes[kind] || '1';
-    },
-
     // ==========================================
     // RETRIEVAL
     // ==========================================
 
-    /**
-     * Get latest XML for declaration
-     * @param {string} declarationId
-     * @param {string} userId
-     * @returns {Promise<Object|null>}
-     */
     async getLatest(declarationId, userId) {
         const declaration = await declarationsRepository.findById(declarationId);
-        if (!declaration) {
-            throw new Error('Declaration not found');
-        }
+        if (!declaration) throw new Error('Declaration not found');
 
         const hasAccess = await identitiesRepository.userHasAccess(userId, declaration.tax_identity_id);
-        if (!hasAccess) {
-            throw new Error('No access to this declaration');
-        }
+        if (!hasAccess) throw new Error('No access to this declaration');
 
         return xmlGeneratorRepository.getLatestXml(declarationId);
     },
 
-    /**
-     * Get XML by ID
-     * @param {string} xmlId
-     * @param {string} userId
-     * @returns {Promise<Object>}
-     */
     async getById(xmlId, userId) {
         const xml = await xmlGeneratorRepository.getXmlById(xmlId);
-        if (!xml) {
-            throw new Error('XML not found');
-        }
+        if (!xml) throw new Error('XML not found');
 
         const declaration = await declarationsRepository.findById(xml.declaration_id);
         const hasAccess = await identitiesRepository.userHasAccess(userId, declaration.tax_identity_id);
-        if (!hasAccess) {
-            throw new Error('No access to this XML');
-        }
+        if (!hasAccess) throw new Error('No access to this XML');
 
         return xml;
     },
 
-    /**
-     * List XML versions for declaration
-     * @param {string} declarationId
-     * @param {string} userId
-     * @returns {Promise<Array>}
-     */
     async listVersions(declarationId, userId) {
         const declaration = await declarationsRepository.findById(declarationId);
-        if (!declaration) {
-            throw new Error('Declaration not found');
-        }
+        if (!declaration) throw new Error('Declaration not found');
 
         const hasAccess = await identitiesRepository.userHasAccess(userId, declaration.tax_identity_id);
-        if (!hasAccess) {
-            throw new Error('No access to this declaration');
-        }
+        if (!hasAccess) throw new Error('No access to this declaration');
 
         return xmlGeneratorRepository.listXmlVersions(declarationId);
     },
 
-    // ==========================================
-    // VALIDATION
-    // ==========================================
-
-    /**
-     * Validate XML structure (basic)
-     * @param {string} xmlContent
-     * @returns {Object}
-     */
     validateXmlStructure(xmlContent) {
         const errors = [];
+        if (!xmlContent.startsWith('<?xml')) errors.push('Missing XML declaration');
+        if (!xmlContent.includes('<fno')) errors.push('Missing root element <fno>');
+        if (!xmlContent.includes('form_270_00')) errors.push('Missing form_270_00');
+        if (!xmlContent.includes('form_270_01')) errors.push('Missing form_270_01');
+        return { isValid: errors.length === 0, errors };
+    },
 
-        // Check XML declaration
-        if (!xmlContent.startsWith('<?xml')) {
-            errors.push('Missing XML declaration');
+    validateDeclarationData(declaration, items) {
+        const errors = [];
+        const warnings = [];
+
+        if (!declaration.iin) errors.push('IIN is required');
+        else if (declaration.iin.length !== 12) errors.push('IIN must be 12 characters');
+        if (!declaration.fio_last) errors.push('Last name (fio1) is required');
+        if (!declaration.fio_first) errors.push('First name (fio2) is required');
+
+        const incomeTotal = parseFloat(items.LF_INCOME_TOTAL) || 0;
+        const taxableIncome = parseFloat(items.LF_TAXABLE_INCOME) || 0;
+        const adjustmentTotal = parseFloat(items.LF_ADJUSTMENT_TOTAL) || 0;
+        const deductionTotal = parseFloat(items.LF_DEDUCTION_TOTAL) || 0;
+
+        const expectedTaxable = incomeTotal - adjustmentTotal - deductionTotal;
+        if (Math.abs(taxableIncome - expectedTaxable) > 0.01) {
+            warnings.push(`Taxable income mismatch: ${taxableIncome} vs expected ${expectedTaxable}`);
         }
 
-        // Check for required sections
-        const requiredSections = [
-            'HEADER',
-            'SECTION_270_01',
-            'SECTION_270_04',
-        ];
-
-        for (const section of requiredSections) {
-            if (!xmlContent.includes(`<${section}>`)) {
-                errors.push(`Missing required section: ${section}`);
-            }
-        }
-
-        // Check for required header fields
-        const requiredHeaderFields = ['TAX_YEAR', 'FORM_CODE', 'IIN'];
-        for (const field of requiredHeaderFields) {
-            if (!xmlContent.includes(`<${field}>`)) {
-                errors.push(`Missing required header field: ${field}`);
-            }
-        }
-
-        return {
-            isValid: errors.length === 0,
-            errors,
-        };
+        return { isValid: errors.length === 0, errors, warnings };
     },
 };
 

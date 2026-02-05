@@ -227,6 +227,40 @@ const taxEventsController = {
             next(error);
         }
     },
+
+    /**
+     * Create single tax event manually
+     * POST /api/tax-events
+     */
+    async createEvent(req, res, next) {
+        try {
+            const userId = req.user.id;
+            const { taxIdentityId, eventType, eventDate, amount, currency, metadata } = req.body;
+
+            if (!taxIdentityId || !eventType || !eventDate) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'taxIdentityId, eventType and eventDate are required',
+                });
+            }
+
+            const event = await taxEventsService.createEvent(userId, {
+                taxIdentityId,
+                eventType,
+                eventDate,
+                amount,
+                currency,
+                metadata,
+            });
+
+            res.status(201).json({
+                success: true,
+                data: event,
+            });
+        } catch (error) {
+            next(error);
+        }
+    },
 };
 
 module.exports = taxEventsController;

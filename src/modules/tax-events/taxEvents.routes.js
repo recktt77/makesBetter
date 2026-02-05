@@ -26,6 +26,18 @@ router.get('/types', taxEventsController.getEventTypes);
 router.post('/types', taxEventsController.createEventType);
 
 // ==========================================
+// CREATE SINGLE EVENT
+// ==========================================
+
+/**
+ * @route   POST /api/tax-events
+ * @desc    Create single tax event manually
+ * @access  Private
+ * @body    { taxIdentityId, eventType, eventDate, amount?, currency?, metadata? }
+ */
+router.post('/', taxEventsController.createEvent);
+
+// ==========================================
 // SINGLE EVENT OPERATIONS
 // ==========================================
 
