@@ -80,19 +80,66 @@ CREATE TABLE user_identity_roles (
 -- C) SOURCES (AUDIT) + EVENTS (IMMUTABLE FACTS)
 -- =========================================================
 CREATE TABLE source_records (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  tax_identity_id UUID REFERENCES tax_identities(id) ON DELETE CASCADE,
-  source_type TEXT CHECK (source_type IN ('manual', 'csv', 'excel', 'bank', '1c', 'api')) NOT NULL,
-  external_id TEXT,
-  checksum TEXT,
-  raw_payload JSONB,
-  imported_at TIMESTAMP DEFAULT now()
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+
+    -- Налоговый субъект, за которого загружены данные
+    tax_identity_id UUID NOT NULL
+        REFERENCES tax_identities(id)
+        ON DELETE RESTRICT,
+
+    -- Тип источника данных
+    source_type TEXT NOT NULL
+        CHECK (source_type IN (
+            'manual',   -- ручной ввод
+            'csv',      -- CSV файл
+            'excel',    -- Excel файл
+            'bank',     -- банковская выписка
+            '1c',       -- интеграция 1С
+            'api'       -- внешнее API
+        )),
+
+    -- Внешний идентификатор источника (если есть)
+    -- например: id выписки банка, id документа в 1С
+    external_id TEXT,
+
+    -- Контрольная сумма для защиты от дублей
+    checksum TEXT,
+
+    -- ОРИГИНАЛЬНЫЕ данные источника
+    -- хранятся без изменений
+    raw_payload JSONB NOT NULL,
+
+    -- Кто загрузил источник (пользователь системы)
+    imported_by UUID
+        REFERENCES users(id)
+        ON DELETE SET NULL,
+
+    -- Время импорта
+    imported_at TIMESTAMP NOT NULL DEFAULT now(),
+
+    -- Логическое отключение (вместо удаления)
+    is_active BOOLEAN NOT NULL DEFAULT true
 );
+
 
 CREATE TABLE tax_event_types (
   code TEXT PRIMARY KEY,
   description TEXT
 );
+
+CREATE INDEX idx_source_records_tax_identity
+    ON source_records(tax_identity_id);
+
+CREATE INDEX idx_source_records_active
+    ON source_records(is_active);
+
+CREATE INDEX idx_source_records_source_type
+    ON source_records(source_type);
+
+CREATE UNIQUE INDEX uq_source_records_identity_checksum
+    ON source_records(tax_identity_id, checksum)
+    WHERE checksum IS NOT NULL;
+
 
 CREATE TABLE tax_events (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -106,9 +153,6 @@ CREATE TABLE tax_events (
   tax_year INT GENERATED ALWAYS AS (EXTRACT(YEAR FROM event_date)) STORED,
   created_at TIMESTAMP DEFAULT now()
 );
-
-CREATE INDEX idx_tax_events_identity_year
-  ON tax_events(tax_identity_id, tax_year);
 
 -- =========================================================
 -- D) LOGICAL TAX MODEL (RULE ENGINE)
