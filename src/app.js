@@ -8,6 +8,7 @@ const otpRoutes = require('./modules/otp/otp.routes');
 const identitiesRoutes = require('./modules/identities/identities.routes');
 const sourcesRoutes = require('./modules/sources/sources.routes');
 const taxEventsRoutes = require('./modules/tax-events/taxEvents.routes');
+const ruleEngineRoutes = require('./modules/rule-engine/ruleEngine.routes');
 
 // Import middleware
 const { errorHandler, notFoundHandler } = require('./middleware/error.middleware');
@@ -38,6 +39,7 @@ app.use('/api/otp', otpRoutes);
 app.use('/api/identities', identitiesRoutes);
 app.use('/api/sources', sourcesRoutes);
 app.use('/api/tax-events', taxEventsRoutes);
+app.use('/api/rules', ruleEngineRoutes);
 
 // 404 handler
 app.use(notFoundHandler);
