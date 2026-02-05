@@ -79,19 +79,53 @@ const ManualParser = {
      * @returns {Object} TaxEventInput
      */
     parseLegacyFormat(data, taxIdentityId, sourceRecordId) {
-        // Map legacy income types to event types
+        // Map legacy income types to new EV_* event types
         const incomeTypeMap = {
-            'salary': 'INCOME_OTHER',
-            'rent': 'INCOME_RENT',
-            'property': 'INCOME_PROPERTY_KZ',
-            'property_foreign': 'INCOME_PROPERTY_FOREIGN',
-            'foreign': 'INCOME_FOREIGN_GENERAL',
-            'assignment': 'INCOME_ASSIGNMENT',
-            'private_practice': 'PRIVATE_PRACTICE_INCOME',
-            'other': 'INCOME_OTHER',
+            // Property income
+            'salary': 'EV_OTHER_NON_AGENT_INCOME',
+            'rent': 'EV_PROPERTY_RENT_NON_AGENT',
+            'property': 'EV_PROPERTY_SALE_KZ',
+            'property_kz': 'EV_PROPERTY_SALE_KZ',
+            'property_foreign': 'EV_PROPERTY_SALE_FOREIGN',
+            'capital_contribution': 'EV_PROPERTY_CAPITAL_CONTRIBUTION',
+            'assignment': 'EV_PROPERTY_ASSIGNMENT_RIGHT',
+            'ip_asset': 'EV_IP_OTHER_ASSET_SALE',
+
+            // Foreign income
+            'foreign': 'EV_FOREIGN_OTHER',
+            'foreign_employment': 'EV_FOREIGN_EMPLOYMENT_INCOME',
+            'foreign_gpc': 'EV_FOREIGN_GPC_INCOME',
+            'foreign_dividends': 'EV_FOREIGN_DIVIDENDS',
+            'foreign_interest': 'EV_FOREIGN_INTEREST',
+            'foreign_pension': 'EV_FOREIGN_PENSION',
+
+            // Non-agent income
+            'domestic_helper': 'EV_DOMESTIC_HELPER_INCOME',
+            'citizen_gpc': 'EV_CITIZEN_GPC_INCOME',
+            'mediator': 'EV_MEDIATOR_INCOME',
+            'subsidiary_farm': 'EV_SUBSIDIARY_FARM_INCOME',
+            'labor_migrant': 'EV_LABOR_MIGRANT_INCOME',
+            'private_practice': 'EV_OTHER_NON_AGENT_INCOME',
+            'other': 'EV_OTHER_NON_AGENT_INCOME',
+
+            // CFC
+            'cfc_profit': 'EV_CFC_PROFIT_BEFORE_TAX',
+            'cfc_exempted': 'EV_CFC_PROFIT_EXEMPTED',
+
+            // Adjustments
+            'adjustment_341': 'EV_ADJUSTMENT_ART_341',
+            'adjustment_654': 'EV_ADJUSTMENT_ART_654',
+            'adjustment_treaty': 'EV_ADJUSTMENT_TREATY',
+
+            // Deductions
+            'deduction': 'EV_DEDUCTION_STANDARD',
+            'deduction_other': 'EV_DEDUCTION_OTHER',
+
+            // Foreign tax
+            'foreign_tax': 'EV_FOREIGN_TAX_PAID_GENERAL',
         };
 
-        const eventType = incomeTypeMap[data.income_type] || 'INCOME_OTHER';
+        const eventType = incomeTypeMap[data.income_type] || 'EV_OTHER_NON_AGENT_INCOME';
         const eventDate = this.normalizeDate(data.date || data.event_date);
 
         return {

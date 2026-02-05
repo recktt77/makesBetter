@@ -113,32 +113,70 @@ const CsvParser = {
      * @returns {string}
      */
     normalizeEventType(type) {
-        if (!type) return 'INCOME_OTHER';
+        if (!type) return 'EV_OTHER_NON_AGENT_INCOME';
 
         const normalized = type.toUpperCase().trim().replace(/\s+/g, '_');
 
         const typeMap = {
-            'INCOME': 'INCOME_OTHER',
-            'RENT': 'INCOME_RENT',
-            'АРЕНДА': 'INCOME_RENT',
-            'PROPERTY': 'INCOME_PROPERTY_KZ',
-            'ИМУЩЕСТВО': 'INCOME_PROPERTY_KZ',
-            'FOREIGN': 'INCOME_FOREIGN_GENERAL',
-            'ИНОСТРАННЫЙ': 'INCOME_FOREIGN_GENERAL',
-            'PRIVATE_PRACTICE': 'PRIVATE_PRACTICE_INCOME',
-            'ЧАСТНАЯ_ПРАКТИКА': 'PRIVATE_PRACTICE_INCOME',
-            'DEBT': 'DEBT_RECEIVABLE',
-            'ДОЛГ': 'DEBT_RECEIVABLE',
+            // Property income
+            'INCOME': 'EV_OTHER_NON_AGENT_INCOME',
+            'RENT': 'EV_PROPERTY_RENT_NON_AGENT',
+            'АРЕНДА': 'EV_PROPERTY_RENT_NON_AGENT',
+            'PROPERTY': 'EV_PROPERTY_SALE_KZ',
+            'ИМУЩЕСТВО': 'EV_PROPERTY_SALE_KZ',
+            'PROPERTY_KZ': 'EV_PROPERTY_SALE_KZ',
+            'PROPERTY_FOREIGN': 'EV_PROPERTY_SALE_FOREIGN',
+            'CAPITAL_CONTRIBUTION': 'EV_PROPERTY_CAPITAL_CONTRIBUTION',
+            'ASSIGNMENT': 'EV_PROPERTY_ASSIGNMENT_RIGHT',
+            'IP_ASSET': 'EV_IP_OTHER_ASSET_SALE',
+
+            // Foreign income
+            'FOREIGN': 'EV_FOREIGN_OTHER',
+            'ИНОСТРАННЫЙ': 'EV_FOREIGN_OTHER',
+            'FOREIGN_EMPLOYMENT': 'EV_FOREIGN_EMPLOYMENT_INCOME',
+            'FOREIGN_GPC': 'EV_FOREIGN_GPC_INCOME',
+            'FOREIGN_DIVIDENDS': 'EV_FOREIGN_DIVIDENDS',
+            'FOREIGN_INTEREST': 'EV_FOREIGN_INTEREST',
+            'FOREIGN_PENSION': 'EV_FOREIGN_PENSION',
+            'ДИВИДЕНДЫ': 'EV_FOREIGN_DIVIDENDS',
+
+            // Non-agent domestic income
+            'PRIVATE_PRACTICE': 'EV_OTHER_NON_AGENT_INCOME',
+            'ЧАСТНАЯ_ПРАКТИКА': 'EV_OTHER_NON_AGENT_INCOME',
+            'DOMESTIC_HELPER': 'EV_DOMESTIC_HELPER_INCOME',
+            'CITIZEN_GPC': 'EV_CITIZEN_GPC_INCOME',
+            'MEDIATOR': 'EV_MEDIATOR_INCOME',
+            'SUBSIDIARY_FARM': 'EV_SUBSIDIARY_FARM_INCOME',
+            'LABOR_MIGRANT': 'EV_LABOR_MIGRANT_INCOME',
+
+            // CFC
+            'CFC': 'EV_CFC_PROFIT_BEFORE_TAX',
+            'CFC_PROFIT': 'EV_CFC_PROFIT_BEFORE_TAX',
+            'CFC_EXEMPTED': 'EV_CFC_PROFIT_EXEMPTED',
+
+            // Adjustments
+            'ADJUSTMENT': 'EV_ADJUSTMENT_ART_341',
+            'ADJUSTMENT_341': 'EV_ADJUSTMENT_ART_341',
+            'ADJUSTMENT_654': 'EV_ADJUSTMENT_ART_654',
+            'ADJUSTMENT_TREATY': 'EV_ADJUSTMENT_TREATY',
+
+            // Deductions
+            'DEDUCTION': 'EV_DEDUCTION_STANDARD',
+            'DEDUCTION_STANDARD': 'EV_DEDUCTION_STANDARD',
+            'DEDUCTION_OTHER': 'EV_DEDUCTION_OTHER',
+            'ВЫЧЕТ': 'EV_DEDUCTION_STANDARD',
+
+            // Foreign tax
+            'FOREIGN_TAX': 'EV_FOREIGN_TAX_PAID_GENERAL',
+            'FOREIGN_TAX_CFC': 'EV_FOREIGN_TAX_PAID_CFC',
         };
 
-        // Return mapped type or original if it looks like a valid code
-        if (normalized.startsWith('INCOME_') || normalized.startsWith('PRIVATE_') ||
-            normalized.startsWith('FOREIGN_') || normalized.startsWith('DEBT_') ||
-            normalized.startsWith('CFC_')) {
+        // Return if already EV_* format
+        if (normalized.startsWith('EV_')) {
             return normalized;
         }
 
-        return typeMap[normalized] || 'INCOME_OTHER';
+        return typeMap[normalized] || 'EV_OTHER_NON_AGENT_INCOME';
     },
 
     /**
@@ -149,12 +187,16 @@ const CsvParser = {
     inferEventType(row) {
         const description = (row.description || row.описание || '').toLowerCase();
 
-        if (description.includes('аренд')) return 'INCOME_RENT';
-        if (description.includes('rent')) return 'INCOME_RENT';
-        if (description.includes('имущество')) return 'INCOME_PROPERTY_KZ';
-        if (description.includes('property')) return 'INCOME_PROPERTY_KZ';
+        if (description.includes('аренд')) return 'EV_PROPERTY_RENT_NON_AGENT';
+        if (description.includes('rent')) return 'EV_PROPERTY_RENT_NON_AGENT';
+        if (description.includes('имущество')) return 'EV_PROPERTY_SALE_KZ';
+        if (description.includes('property')) return 'EV_PROPERTY_SALE_KZ';
+        if (description.includes('дивиденд')) return 'EV_FOREIGN_DIVIDENDS';
+        if (description.includes('dividend')) return 'EV_FOREIGN_DIVIDENDS';
+        if (description.includes('зарплат')) return 'EV_FOREIGN_EMPLOYMENT_INCOME';
+        if (description.includes('salary')) return 'EV_FOREIGN_EMPLOYMENT_INCOME';
 
-        return 'INCOME_OTHER';
+        return 'EV_OTHER_NON_AGENT_INCOME';
     },
 
     /**

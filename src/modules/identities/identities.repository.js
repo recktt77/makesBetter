@@ -381,6 +381,76 @@ const identitiesRepository = {
         const result = await db.query(queryText, params);
         return result.rowCount > 0;
     },
+
+    /**
+     * List tax identities by user ID
+     * @param {string} userId
+     * @returns {Promise<Array>}
+     */
+    async listByUser(userId) {
+        const result = await db.query(
+            `SELECT 
+                ti.*,
+                uir.role,
+                p.iin, p.last_name, p.first_name, p.middle_name,
+                p.email AS person_email, p.phone AS person_phone,
+                b.bin, b.legal_name, b.entity_type,
+                b.email AS business_email, b.phone AS business_phone
+            FROM user_identity_roles uir
+            JOIN tax_identities ti ON ti.id = uir.tax_identity_id
+            LEFT JOIN persons p ON p.id = ti.person_id
+            LEFT JOIN business_entities b ON b.id = ti.business_id
+            WHERE uir.user_id = $1
+            ORDER BY ti.created_at DESC`,
+            [userId]
+        );
+        return result.rows;
+    },
+
+    /**
+     * Get full identity with person or business details
+     * @param {string} taxIdentityId
+     * @returns {Promise<Object|null>}
+     */
+    async getFullIdentity(taxIdentityId) {
+        const result = await db.query(
+            `SELECT 
+                ti.id AS tax_identity_id,
+                ti.identity_type,
+                ti.created_at,
+                CASE 
+                    WHEN ti.person_id IS NOT NULL THEN json_build_object(
+                        'id', p.id,
+                        'iin', p.iin,
+                        'last_name', p.last_name,
+                        'first_name', p.first_name,
+                        'middle_name', p.middle_name,
+                        'email', p.email,
+                        'phone', p.phone,
+                        'residency_status', p.residency_status,
+                        'marital_status', p.marital_status
+                    )
+                    ELSE NULL
+                END AS person,
+                CASE 
+                    WHEN ti.business_id IS NOT NULL THEN json_build_object(
+                        'id', b.id,
+                        'bin', b.bin,
+                        'legal_name', b.legal_name,
+                        'entity_type', b.entity_type,
+                        'email', b.email,
+                        'phone', b.phone
+                    )
+                    ELSE NULL
+                END AS business
+            FROM tax_identities ti
+            LEFT JOIN persons p ON p.id = ti.person_id
+            LEFT JOIN business_entities b ON b.id = ti.business_id
+            WHERE ti.id = $1`,
+            [taxIdentityId]
+        );
+        return result.rows[0] || null;
+    },
 };
 
 module.exports = identitiesRepository;

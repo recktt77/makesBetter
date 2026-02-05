@@ -116,7 +116,7 @@ const ApiParser = {
 
         let eventType = item.event_type || item.type;
         if (!eventType) {
-            eventType = 'INCOME_OTHER';
+            eventType = 'EV_OTHER_NON_AGENT_INCOME';
         } else {
             eventType = this.normalizeEventType(eventType);
         }
@@ -151,10 +151,10 @@ const ApiParser = {
 
         // Determine if acquisition or disposal
         const action = (asset.action || asset.type || '').toLowerCase();
-        let eventType = 'FOREIGN_ASSET_ACQUIRED';
+        let eventType = 'EV_PROPERTY_SALE_FOREIGN';
 
         if (action.includes('dispos') || action.includes('sold') || action.includes('отчужден')) {
-            eventType = 'FOREIGN_ASSET_DISPOSED';
+            eventType = 'EV_PROPERTY_SALE_FOREIGN';
         }
 
         return {
@@ -189,9 +189,8 @@ const ApiParser = {
         }
 
         const type = (debt.debt_type || debt.type || '').toLowerCase();
-        let eventType = type.includes('payable') || type.includes('кредитор')
-            ? 'DEBT_PAYABLE'
-            : 'DEBT_RECEIVABLE';
+        // Debt events are not mapped to 270.00, but tracked for 270.06
+        let eventType = 'EV_OTHER_NON_AGENT_INCOME';
 
         return {
             taxIdentityId,
@@ -274,21 +273,41 @@ const ApiParser = {
      * @returns {string}
      */
     mapIncomeType(incomeType) {
-        if (!incomeType) return 'INCOME_OTHER';
+        if (!incomeType) return 'EV_OTHER_NON_AGENT_INCOME';
 
         const type = incomeType.toLowerCase();
 
         const mapping = {
-            'salary': 'INCOME_OTHER', // Salary is handled by employer
-            'employer': 'INCOME_OTHER',
-            'rent': 'INCOME_RENT',
-            'аренда': 'INCOME_RENT',
-            'property': 'INCOME_PROPERTY_KZ',
-            'имущество': 'INCOME_PROPERTY_KZ',
-            'foreign': 'INCOME_FOREIGN_GENERAL',
-            'иностранный': 'INCOME_FOREIGN_GENERAL',
-            'private_practice': 'PRIVATE_PRACTICE_INCOME',
-            'частная_практика': 'PRIVATE_PRACTICE_INCOME',
+            // Property income
+            'rent': 'EV_PROPERTY_RENT_NON_AGENT',
+            'аренда': 'EV_PROPERTY_RENT_NON_AGENT',
+            'property': 'EV_PROPERTY_SALE_KZ',
+            'имущество': 'EV_PROPERTY_SALE_KZ',
+            'property_foreign': 'EV_PROPERTY_SALE_FOREIGN',
+
+            // Foreign income
+            'foreign': 'EV_FOREIGN_OTHER',
+            'иностранный': 'EV_FOREIGN_OTHER',
+            'foreign_employment': 'EV_FOREIGN_EMPLOYMENT_INCOME',
+            'foreign_gpc': 'EV_FOREIGN_GPC_INCOME',
+            'dividend': 'EV_FOREIGN_DIVIDENDS',
+            'дивиденд': 'EV_FOREIGN_DIVIDENDS',
+            'interest': 'EV_FOREIGN_INTEREST',
+            'процент': 'EV_FOREIGN_INTEREST',
+            'pension': 'EV_FOREIGN_PENSION',
+            'пенсия': 'EV_FOREIGN_PENSION',
+
+            // Non-agent income
+            'salary': 'EV_OTHER_NON_AGENT_INCOME',
+            'employer': 'EV_OTHER_NON_AGENT_INCOME',
+            'private_practice': 'EV_OTHER_NON_AGENT_INCOME',
+            'частная_практика': 'EV_OTHER_NON_AGENT_INCOME',
+            'gpc': 'EV_CITIZEN_GPC_INCOME',
+            'гпх': 'EV_CITIZEN_GPC_INCOME',
+
+            // CFC
+            'cfc': 'EV_CFC_PROFIT_BEFORE_TAX',
+            'кик': 'EV_CFC_PROFIT_BEFORE_TAX',
         };
 
         for (const [key, value] of Object.entries(mapping)) {
@@ -297,7 +316,7 @@ const ApiParser = {
             }
         }
 
-        return 'INCOME_OTHER';
+        return 'EV_OTHER_NON_AGENT_INCOME';
     },
 
     /**
@@ -308,14 +327,22 @@ const ApiParser = {
     normalizeEventType(type) {
         const normalized = type.toUpperCase().trim().replace(/\s+/g, '_').replace(/-/g, '_');
 
-        // Check if it's already a valid format
-        if (normalized.startsWith('INCOME_') || normalized.startsWith('PRIVATE_') ||
-            normalized.startsWith('FOREIGN_') || normalized.startsWith('DEBT_') ||
-            normalized.startsWith('CFC_')) {
+        // Check if it's already EV_* format
+        if (normalized.startsWith('EV_')) {
             return normalized;
         }
 
-        return 'INCOME_OTHER';
+        // Map old format to new EV_* format
+        const legacyMap = {
+            'INCOME_OTHER': 'EV_OTHER_NON_AGENT_INCOME',
+            'INCOME_RENT': 'EV_PROPERTY_RENT_NON_AGENT',
+            'INCOME_PROPERTY_KZ': 'EV_PROPERTY_SALE_KZ',
+            'INCOME_PROPERTY_FOREIGN': 'EV_PROPERTY_SALE_FOREIGN',
+            'INCOME_FOREIGN_GENERAL': 'EV_FOREIGN_OTHER',
+            'PRIVATE_PRACTICE_INCOME': 'EV_OTHER_NON_AGENT_INCOME',
+        };
+
+        return legacyMap[normalized] || 'EV_OTHER_NON_AGENT_INCOME';
     },
 
     /**

@@ -225,9 +225,9 @@ CREATE TABLE declarations (
   created_at TIMESTAMP DEFAULT now()
 );
 
--- 1 декларация на год/форму/identity (как правило)
-CREATE UNIQUE INDEX uq_decl_identity_year_form
-  ON declarations(tax_identity_id, tax_year, form_code);
+-- 1 декларация на год/форму/identity/вид
+CREATE UNIQUE INDEX uq_decl_identity_year_form_kind
+  ON declarations(tax_identity_id, tax_year, form_code, declaration_kind);
 
 CREATE TABLE declaration_items (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
