@@ -6,6 +6,7 @@ require('dotenv').config();
 const authRoutes = require('./modules/auth/auth.routes');
 const otpRoutes = require('./modules/otp/otp.routes');
 const identitiesRoutes = require('./modules/identities/identities.routes');
+const sourcesRoutes = require('./modules/sources/sources.routes');
 
 // Import middleware
 const { errorHandler, notFoundHandler } = require('./middleware/error.middleware');
@@ -34,6 +35,7 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/otp', otpRoutes);
 app.use('/api/identities', identitiesRoutes);
+app.use('/api/sources', sourcesRoutes);
 
 // 404 handler
 app.use(notFoundHandler);
