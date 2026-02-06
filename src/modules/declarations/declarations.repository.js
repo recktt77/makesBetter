@@ -282,12 +282,27 @@ const declarationsRepository = {
      */
     async bulkUpsertItems(declarationId, fieldValues, source = 'rule_engine') {
         const client = await db.getClient();
+        
+        // Required fields that must be saved even if 0
+        const requiredFields = [
+            'LF_INCOME_TOTAL',
+            'LF_TAXABLE_INCOME', 
+            'LF_IPN_CALCULATED',
+            'LF_IPN_PAYABLE',
+            'LF_DEDUCTION_TOTAL',
+            'LF_ADJUSTMENT_TOTAL',
+            'LF_INCOME_FOREIGN_TOTAL',
+            'LF_INCOME_PROPERTY_TOTAL'
+        ];
+        
         try {
             await client.query('BEGIN');
 
             const results = [];
             for (const [logicalField, value] of Object.entries(fieldValues)) {
-                if (value !== null && value !== undefined && value !== 0) {
+                // Save if value is non-zero OR if it's a required field
+                const isRequired = requiredFields.includes(logicalField);
+                if (value !== null && value !== undefined && (value !== 0 || isRequired)) {
                     const result = await client.query(
                         `INSERT INTO declaration_items (declaration_id, logical_field, value, source)
                         VALUES ($1, $2, $3, $4)

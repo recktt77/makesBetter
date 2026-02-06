@@ -153,9 +153,7 @@ const runEngine = {
                 (fv.get('LF_INCOME_PROPERTY_KZ') || 0) +
                 (fv.get('LF_INCOME_PROPERTY_FOREIGN') || 0) +
                 (fv.get('LF_INCOME_PROPERTY_CAPITAL_CONTRIBUTION') || 0);
-            if (propertyTotal > 0) {
-                fv.set('LF_INCOME_PROPERTY_TOTAL', propertyTotal);
-            }
+            fv.set('LF_INCOME_PROPERTY_TOTAL', propertyTotal);
         }
 
         // LF_INCOME_FOREIGN_TOTAL = sum of foreign incomes
@@ -172,9 +170,7 @@ const runEngine = {
                 'LF_INCOME_FOREIGN_OTHER',
             ];
             const foreignTotal = foreignIncomes.reduce((sum, code) => sum + (fv.get(code) || 0), 0);
-            if (foreignTotal > 0) {
-                fv.set('LF_INCOME_FOREIGN_TOTAL', foreignTotal);
-            }
+            fv.set('LF_INCOME_FOREIGN_TOTAL', foreignTotal);
         }
 
         // LF_DEDUCTION_TOTAL = sum of deductions
@@ -182,9 +178,7 @@ const runEngine = {
             const deductionTotal =
                 (fv.get('LF_DEDUCTION_STANDARD') || 0) +
                 (fv.get('LF_DEDUCTION_OTHER') || 0);
-            if (deductionTotal > 0) {
-                fv.set('LF_DEDUCTION_TOTAL', deductionTotal);
-            }
+            fv.set('LF_DEDUCTION_TOTAL', deductionTotal);
         }
 
         // LF_ADJUSTMENT_TOTAL = sum of adjustments
@@ -194,9 +188,7 @@ const runEngine = {
                 (fv.get('LF_ADJUSTMENT_EXCLUDED_ART_654') || 0) +
                 (fv.get('LF_ADJUSTMENT_EXCLUDED_TREATY') || 0) +
                 (fv.get('LF_ADJUSTMENT_EXCLUDED_AIFC') || 0);
-            if (adjustmentTotal > 0) {
-                fv.set('LF_ADJUSTMENT_TOTAL', adjustmentTotal);
-            }
+            fv.set('LF_ADJUSTMENT_TOTAL', adjustmentTotal);
         }
 
         // LF_INCOME_TOTAL = sum of all income categories
@@ -216,9 +208,7 @@ const runEngine = {
                 'LF_INCOME_CFC_PROFIT',
             ];
             const incomeTotal = incomeCategories.reduce((sum, code) => sum + (fv.get(code) || 0), 0);
-            if (incomeTotal > 0) {
-                fv.set('LF_INCOME_TOTAL', incomeTotal);
-            }
+            fv.set('LF_INCOME_TOTAL', incomeTotal);
         }
     },
 

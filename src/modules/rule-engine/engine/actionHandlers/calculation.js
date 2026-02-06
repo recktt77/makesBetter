@@ -18,7 +18,8 @@ const calculationHandler = {
             return null;
         }
 
-        const target = action.target;
+        // Support both 'target' and 'logical_field' for compatibility
+        const target = action.target || action.logical_field;
         if (!target) {
             throw new Error(`Calculation action missing target in rule ${rule.id}`);
         }
