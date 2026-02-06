@@ -15,6 +15,11 @@ const conditionEvaluator = {
             return true; // No conditions = always match
         }
 
+        // Handle "always" condition
+        if (conditions.always === true) {
+            return true;
+        }
+
         // Handle "all" (AND) conditions
         if (conditions.all && Array.isArray(conditions.all)) {
             return conditions.all.every(cond => this.evaluateSingle(cond, event));
@@ -25,9 +30,27 @@ const conditionEvaluator = {
             return conditions.any.some(cond => this.evaluateSingle(cond, event));
         }
 
-        // Single condition
+        // Single condition old format: { field, op, value }
         if (conditions.field && conditions.op) {
             return this.evaluateSingle(conditions, event);
+        }
+
+        // Compact format: { "field_name": { "op": "value" } }
+        // e.g. { "event_type": { "=": "EV_FOREIGN_DIVIDENDS" } }
+        const keys = Object.keys(conditions);
+        if (keys.length === 1) {
+            const field = keys[0];
+            const opValue = conditions[field];
+            if (opValue && typeof opValue === 'object') {
+                const ops = Object.keys(opValue);
+                if (ops.length === 1) {
+                    const op = ops[0];
+                    const value = opValue[op];
+                    // Add "event." prefix if not present for event fields
+                    const fullField = field.startsWith('event.') ? field : `event.${field}`;
+                    return this.evaluateSingle({ field: fullField, op, value }, event);
+                }
+            }
         }
 
         return true;
