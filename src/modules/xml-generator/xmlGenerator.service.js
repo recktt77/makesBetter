@@ -96,10 +96,10 @@ const xmlGeneratorService = {
         xml += this.field('fio1', declaration.fio_last || '');
         xml += this.field('fio2', declaration.fio_first || '');
         xml += this.field('fio3', declaration.fio_middle || '');
-        
+
         const headName = [declaration.fio_last, declaration.fio_first, declaration.fio_middle].filter(Boolean).join(' ');
         xml += this.field('head_name', headName);
-        
+
         xml += this.field('iin', declaration.iin || '');
         xml += this.field('iin_legalrepresentative', declaration.iin_legalrepresentative || '');
         xml += this.field('iin_spouse', declaration.iin_spouse || '');
@@ -125,58 +125,70 @@ const xmlGeneratorService = {
     buildForm270_01(declaration, items, taxYear) {
         let xml = `<form name="form_270_01">\n<sheetGroup>\n<sheet name="page_270_01_01">\n`;
 
-        // Section A - Property Income
+        // Section A - Property Income (Доходы от реализации имущества)
         xml += this.field('field_270_01_A', this.formatMoney(items.LF_INCOME_PROPERTY_TOTAL));
-        xml += this.field('field_270_01_A1_1', this.formatMoney(items.LF_INCOME_PROPERTY_KZ));
-        xml += this.field('field_270_01_A1_2', this.formatMoney(items.LF_INCOME_PROPERTY_FOREIGN));
-        xml += this.field('field_270_01_A2', this.formatMoney(items.LF_INCOME_PROPERTY_CAPITAL_CONTRIBUTION));
-        xml += this.field('field_270_01_A3', this.formatMoney(items.LF_INCOME_RENT_NON_AGENT));
-        xml += this.field('field_270_01_A4', this.formatMoney(items.LF_INCOME_ASSIGNMENT_RIGHTS));
-        xml += this.field('field_270_01_A5', this.formatMoney(items.LF_INCOME_IP_OTHER_ASSETS));
+        xml += this.field('field_270_01_A_1', this.formatMoney(items.LF_INCOME_PROPERTY_SALE));
+        xml += this.field('field_270_01_A_1_1', this.formatMoney(items.LF_INCOME_PROPERTY_KZ));
+        xml += this.field('field_270_01_A_1_2', this.formatMoney(items.LF_INCOME_PROPERTY_FOREIGN));
+        xml += this.field('field_270_01_A_2', this.formatMoney(items.LF_INCOME_PROPERTY_CAPITAL_CONTRIBUTION));
+        xml += this.field('field_270_01_A_3', this.formatMoney(items.LF_INCOME_RENT_NON_AGENT));
+        xml += this.field('field_270_01_A_4', this.formatMoney(items.LF_INCOME_ASSIGNMENT_RIGHTS));
+        xml += this.field('field_270_01_A_5', this.formatMoney(items.LF_INCOME_IP_OTHER_ASSETS));
 
-        // Section B1 - Foreign Income
-        xml += this.field('field_270_01_B1', this.formatMoney(items.LF_INCOME_FOREIGN_TOTAL));
-        xml += this.field('field_270_01_B1_1', this.formatMoney(items.LF_INCOME_FOREIGN_EMPLOYMENT));
-        xml += this.field('field_270_01_B1_2', this.formatMoney(items.LF_INCOME_FOREIGN_GPC));
-        xml += this.field('field_270_01_B1_3', this.formatMoney(items.LF_INCOME_FOREIGN_WIN));
-        xml += this.field('field_270_01_B1_4', this.formatMoney(items.LF_INCOME_FOREIGN_DIVIDENDS));
-        xml += this.field('field_270_01_B1_5', this.formatMoney(items.LF_INCOME_FOREIGN_INTEREST));
-        xml += this.field('field_270_01_B1_6', this.formatMoney(items.LF_INCOME_FOREIGN_SCHOLARSHIP));
-        xml += this.field('field_270_01_B1_7', this.formatMoney(items.LF_INCOME_FOREIGN_INSURANCE));
-        xml += this.field('field_270_01_B1_8', this.formatMoney(items.LF_INCOME_FOREIGN_PENSION));
-        xml += this.field('field_270_01_B1_9', this.formatMoney(items.LF_INCOME_FOREIGN_OTHER));
+        // Section B - Total other income (Прочие доходы)
+        xml += this.field('field_270_01_B', this.formatMoney(items.LF_INCOME_OTHER_TOTAL));
 
-        // Section B2-B7 - Non-agent domestic income
-        xml += this.field('field_270_01_B2', this.formatMoney(items.LF_INCOME_DOMESTIC_HELPERS));
-        xml += this.field('field_270_01_B3', this.formatMoney(items.LF_INCOME_CITIZENS_GPC));
-        xml += this.field('field_270_01_B4', this.formatMoney(items.LF_INCOME_MEDIATOR));
-        xml += this.field('field_270_01_B5', this.formatMoney(items.LF_INCOME_SUBSIDIARY_FARM));
-        xml += this.field('field_270_01_B6', this.formatMoney(items.LF_INCOME_LABOR_MIGRANT));
-        xml += this.field('field_270_01_B7', this.formatMoney(items.LF_INCOME_OTHER_NON_AGENT));
+        // Section B_1 - Foreign Income (Доходы из источников за пределами РК)
+        xml += this.field('field_270_01_B_1', this.formatMoney(items.LF_INCOME_FOREIGN_TOTAL));
+        xml += this.field('field_270_01_B_1_1', this.formatMoney(items.LF_INCOME_FOREIGN_EMPLOYMENT));
+        xml += this.field('field_270_01_B_1_2', this.formatMoney(items.LF_INCOME_FOREIGN_GPC));
+        xml += this.field('field_270_01_B_1_3', this.formatMoney(items.LF_INCOME_FOREIGN_WIN));
+        xml += this.field('field_270_01_B_1_4', this.formatMoney(items.LF_INCOME_FOREIGN_DIVIDENDS));
+        xml += this.field('field_270_01_B_1_5', this.formatMoney(items.LF_INCOME_FOREIGN_INTEREST));
+        xml += this.field('field_270_01_B_1_6', this.formatMoney(items.LF_INCOME_FOREIGN_SCHOLARSHIP));
+        xml += this.field('field_270_01_B_1_7', this.formatMoney(items.LF_INCOME_FOREIGN_INSURANCE));
+        xml += this.field('field_270_01_B_1_8', this.formatMoney(items.LF_INCOME_FOREIGN_PENSION));
+        xml += this.field('field_270_01_B_1_9', this.formatMoney(items.LF_INCOME_FOREIGN_OTHER));
 
-        // Section C - CFC
+        // Section B_2 - B_7 - Non-agent domestic income
+        xml += this.field('field_270_01_B_2', this.formatMoney(items.LF_INCOME_DOMESTIC_HELPERS));
+        xml += this.field('field_270_01_B_3', this.formatMoney(items.LF_INCOME_CITIZENS_GPC));
+        xml += this.field('field_270_01_B_4', this.formatMoney(items.LF_INCOME_MEDIATOR));
+        xml += this.field('field_270_01_B_5', this.formatMoney(items.LF_INCOME_SUBSIDIARY_FARM));
+        xml += this.field('field_270_01_B_6', this.formatMoney(items.LF_INCOME_LABOR_MIGRANT));
+        xml += this.field('field_270_01_B_7', this.formatMoney(items.LF_INCOME_OTHER_NON_AGENT));
+
+        // Section C - CFC (Доход от прибыли КИК)
         xml += this.field('field_270_01_C', this.formatMoney(items.LF_INCOME_CFC_PROFIT));
 
-        // Section D - Total Income
+        // Section D - Total Income (Итого доходов)
         xml += this.field('field_270_01_D', this.formatMoney(items.LF_INCOME_TOTAL));
 
-        // Section E - Adjustments
+        // Section E - Adjustments (Корректировка дохода)
         xml += this.field('field_270_01_E', this.formatMoney(items.LF_ADJUSTMENT_TOTAL));
-        xml += this.field('field_270_01_E1', this.formatMoney(items.LF_ADJUSTMENT_EXCLUDED_ART_341));
-        xml += this.field('field_270_01_E2', this.formatMoney(items.LF_ADJUSTMENT_EXCLUDED_ART_654));
-        xml += this.field('field_270_01_E3', this.formatMoney(items.LF_ADJUSTMENT_EXCLUDED_TREATY));
-        xml += this.field('field_270_01_E4', this.formatMoney(items.LF_ADJUSTMENT_EXCLUDED_AIFC));
+        xml += this.field('field_270_01_E_1', this.formatMoney(items.LF_ADJUSTMENT_EXCLUDED_ART_341));
+        xml += this.field('field_270_01_E_2', this.formatMoney(items.LF_ADJUSTMENT_EXCLUDED_ART_654));
+        xml += this.field('field_270_01_E_3', this.formatMoney(items.LF_ADJUSTMENT_EXCLUDED_TREATY));
+        xml += this.field('field_270_01_E_4', this.formatMoney(items.LF_ADJUSTMENT_EXCLUDED_AIFC));
 
-        // Section F - Deductions
+        // Section F - Deductions (Налоговые вычеты)
         xml += this.field('field_270_01_F', this.formatMoney(items.LF_DEDUCTION_TOTAL));
-        xml += this.field('field_270_01_F1', this.formatMoney(items.LF_DEDUCTION_STANDARD));
-        xml += this.field('field_270_01_F2', this.formatMoney(items.LF_DEDUCTION_OTHER));
+        xml += this.field('field_270_01_F_1', this.formatMoney(items.LF_DEDUCTION_STANDARD));
+        xml += this.field('field_270_01_F_2', this.formatMoney(items.LF_DEDUCTION_OTHER));
 
-        // Section G-K - Tax Calculation
+        // Section G - Taxable Income (Облагаемый доход)
         xml += this.field('field_270_01_G', this.formatMoney(items.LF_TAXABLE_INCOME));
+
+        // Section H - Calculated IPN (Исчисленный ИПН)
         xml += this.field('field_270_01_H', this.formatMoney(items.LF_IPN_CALCULATED));
+
+        // Section I - Foreign Tax Credit General (Зачет иностранного налога)
         xml += this.field('field_270_01_I', this.formatMoney(items.LF_FOREIGN_TAX_CREDIT_GENERAL));
+
+        // Section J - Foreign Tax Credit CFC (Зачет иностранного налога с КИК)
         xml += this.field('field_270_01_J', this.formatMoney(items.LF_FOREIGN_TAX_CREDIT_CFC));
+
+        // Section K - IPN Payable (ИПН к уплате)
         xml += this.field('field_270_01_K', this.formatMoney(items.LF_IPN_PAYABLE));
 
         xml += this.field('field_270_01_bin', '');
@@ -190,11 +202,28 @@ const xmlGeneratorService = {
 
     buildForm270_02(declaration, taxYear) {
         let xml = `<form name="form_270_02">\n<sheetGroup>\n<sheet name="page_270_02_01">\n`;
+
+        // Bank details
         xml += this.field('bank_code', '');
-        xml += this.field('field_270_02_kbk_01', '');
-        xml += this.field('field_270_02_kbk_02', '');
+        xml += this.field('iik', '');
+
+        // Section B - ИПН, подлежащий уплате
+        xml += this.field('field_270_02_B', '');
+
+        // Section C - ИПН, подлежащий возврату  
+        xml += this.field('field_270_02_C', '');
+
+        // Payment details row 1
+        xml += this.field('field_270_02_kbk_01', '101201');
         xml += this.field('field_270_02_kogd_01', '');
+        xml += this.field('field_270_02_tax_01', '');
+        xml += this.field('field_270_02_pen_01', '');
+
+        // Payment details row 2
+        xml += this.field('field_270_02_kbk_02', '');
         xml += this.field('field_270_02_kogd_02', '');
+        xml += this.field('field_270_02_tax_02', '');
+
         xml += this.field('iin', declaration.iin || '');
         xml += this.field('page_number', '1');
         xml += this.field('period_year', taxYear);
@@ -204,6 +233,19 @@ const xmlGeneratorService = {
 
     buildForm270_03(declaration, taxYear) {
         let xml = `<form name="form_270_03">\n<sheetGroup>\n<sheet name="page_270_03_01">\n`;
+
+        // Section B - Доходы от налоговых агентов (B_1 to B_12)
+        xml += this.field('field_270_03_B', '');
+        for (let i = 1; i <= 12; i++) {
+            xml += this.field(`field_270_03_B_${i}`, '');
+        }
+
+        // Section C - Удержанный ИПН (C_1 to C_12)
+        xml += this.field('field_270_03_C', '');
+        for (let i = 1; i <= 12; i++) {
+            xml += this.field(`field_270_03_C_${i}`, '');
+        }
+
         xml += this.field('field_270_03_bin', '');
         xml += this.field('field_270_03_tax_org', '');
         xml += this.field('iin', declaration.iin || '');
@@ -216,31 +258,35 @@ const xmlGeneratorService = {
     buildForm270_04(declaration, taxYear) {
         let xml = `<form name="form_270_04">\n<sheetGroup>\n<sheet name="page_270_04_01">\n`;
 
-        const sectionsB = ['A', 'B', 'C', 'E', 'F', 'G', 'H', 'I'];
-        for (const section of sectionsB) {
+        // Section B: columns A,B,C,E,F,G,H,I rows 1-6
+        const columnsB = ['A', 'B', 'C', 'E', 'F', 'G', 'H', 'I'];
+        for (const col of columnsB) {
             for (let i = 1; i <= 6; i++) {
-                xml += this.field(`field_270_04_B_${section}_${i}`, '');
+                xml += this.field(`field_270_04_B_${col}_${i}`, '');
             }
         }
 
-        const sectionsC = ['A', 'B', 'C', 'D', 'E'];
-        for (const section of sectionsC) {
+        // Section C: columns A,B,C,D,E rows 1-6
+        const columnsC = ['A', 'B', 'C', 'D', 'E'];
+        for (const col of columnsC) {
             for (let i = 1; i <= 6; i++) {
-                xml += this.field(`field_270_04_C_${section}_${i}`, '');
+                xml += this.field(`field_270_04_C_${col}_${i}`, '');
             }
         }
 
-        const sectionsD = ['A', 'B', 'C', 'D', 'F', 'G'];
-        for (const section of sectionsD) {
+        // Section D: columns A,B,C,D,F,G rows 1-5
+        const columnsD = ['A', 'B', 'C', 'D', 'F', 'G'];
+        for (const col of columnsD) {
             for (let i = 1; i <= 5; i++) {
-                xml += this.field(`field_270_04_D_${section}_${i}`, '');
+                xml += this.field(`field_270_04_D_${col}_${i}`, '');
             }
         }
 
-        const sectionsE = ['A', 'B', 'C', 'D', 'E'];
-        for (const section of sectionsE) {
+        // Section E: columns A,B,C,D,E rows 1-5
+        const columnsE = ['A', 'B', 'C', 'D', 'E'];
+        for (const col of columnsE) {
             for (let i = 1; i <= 5; i++) {
-                xml += this.field(`field_270_04_E_${section}_${i}`, '');
+                xml += this.field(`field_270_04_E_${col}_${i}`, '');
             }
         }
 
@@ -254,17 +300,19 @@ const xmlGeneratorService = {
     buildForm270_05(declaration, taxYear) {
         let xml = `<form name="form_270_05">\n<sheetGroup>\n<sheet name="page_270_05_01">\n`;
 
-        const sectionsB = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'I', 'J', 'K', 'L'];
-        for (const section of sectionsB) {
+        // Section B: columns A,B,C,D,E,F,G,I,J,K,L rows 1-11
+        const columnsB = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'I', 'J', 'K', 'L'];
+        for (const col of columnsB) {
             for (let i = 1; i <= 11; i++) {
-                xml += this.field(`field_270_05_B_${section}_${i}`, '');
+                xml += this.field(`field_270_05_B_${col}_${i}`, '');
             }
         }
 
-        const sectionsC = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
-        for (const section of sectionsC) {
+        // Section C: columns A,B,C,D,E,F,G,H rows 1-11
+        const columnsC = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+        for (const col of columnsC) {
             for (let i = 1; i <= 11; i++) {
-                xml += this.field(`field_270_05_C_${section}_${i}`, '');
+                xml += this.field(`field_270_05_C_${col}_${i}`, '');
             }
         }
 
@@ -281,6 +329,7 @@ const xmlGeneratorService = {
         xml += this.field('page_number', '1');
         xml += this.field('period_year', taxYear);
 
+        // Fields: A, B, C, D, F, G
         for (let i = 0; i < 4; i++) {
             xml += `<row>\n`;
             xml += this.field('field_270_06_A', '');
@@ -302,6 +351,7 @@ const xmlGeneratorService = {
         xml += this.field('page_number', '1');
         xml += this.field('period_year', taxYear);
 
+        // Fields: A, B, C, D, F, M
         for (let i = 0; i < 4; i++) {
             xml += `<row>\n`;
             xml += this.field('field_270_07_A', '');
